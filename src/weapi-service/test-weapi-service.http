@@ -1,0 +1,11 @@
+### Get weapi service health
+GET /health
+Host: localhost:3001
+
+### Get weather by location
+GET /weather/108040
+Host: localhost:3001
+
+### Fetch weather by location
+GET /weather/108040/fetch
+Host: localhost:3001
