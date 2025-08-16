@@ -1,7 +1,8 @@
-use rumqttc::{Client, Connection, Incoming, MqttOptions};
+use rumqttc::{Client, Connection, Event, Incoming, MqttOptions, SubscribeFilter};
 use std::time::Duration;
 
 use crate::configuration::Settings;
+use crate::mqtt_handlers::handle_incoming_mqtt_event;
 
 pub struct MqttTopics;
 
@@ -23,17 +24,35 @@ pub fn create_mqtt_client(settings: &Settings) -> (Client, Connection) {
 pub fn process_mqtt_events(mut connection: Connection) {
     for (i, notification) in connection.iter().enumerate() {
         match notification {
-            Ok(notif) => {
-                println!("{i}. Notification = {notif:?}");
-            }
+            Ok(notif) => match notif {
+                Event::Incoming(Incoming::PubAck(puback)) => {
+                    println!("{i}. Received PubAck: {:?}", puback);
+                }
+                Event::Incoming(Incoming::Publish(publish)) => {
+                    handle_incoming_mqtt_event(publish);
+                }
+                _ => {}
+            },
             Err(error) => {
                 println!("{i}. Notification = {error:?}");
-                return;
             }
         }
     }
 }
 
+pub fn setup_mqtt_subscriptions(client: &Client) {
+    let topics = vec![(
+        MqttTopics::LIVING_ROOM_CONDITIONS_UPDATED.to_string(),
+        rumqttc::QoS::AtLeastOnce,
+    )];
+
+    let topics: Vec<SubscribeFilter> = topics
+        .into_iter()
+        .map(|(path, qos)| SubscribeFilter { path, qos })
+        .collect();
+
+    client.subscribe_many(topics).unwrap();
+}
 
 // fn handle_mqtt_event(incoming_event: Incoming) {
 // }
