@@ -14,6 +14,8 @@ services:
   #     interval: 10s
   #     timeout: 5s
   #     retries: 5
+  #   networks:
+  #     - home-system
 
   mongodb:
     image: mongo:6.0.6
@@ -27,7 +29,7 @@ services:
       timeout: 10s
       retries: 5
     networks:
-      - backend_services
+      - home-system
 
   weapi-service:
     build: src/weapi-service
@@ -56,8 +58,59 @@ services:
       mongodb:
         condition: service_healthy
     networks:
-      - backend_services
+      - home-system
+
+  hose-service:
+    build: src/hose-service
+    container_name: hose-service
+    restart: always
+    ports:
+      - 3002:3002
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-O",
+          "/dev/null",
+          "-q",
+          "http://hose-service:3002/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1884
+      # - WEATHER_DB_NAME=weather_db
+      # - WEATHER_DB_COLLECTION_NAME=weather_data
+      # - WEATHER_DB_URI=mongodb://mongo:27017/weather_db
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    networks:
+      - home-system
+
+  mosquitto:
+    image: eclipse-mosquitto
+    container_name: mosquitto
+    restart: always
+    ports:
+      - "1884:1884"
+      - "9001:9001" #default mqtt port for websockets
+    healthcheck:
+      test: ["CMD-SHELL", "timeout -t 5 mosquitto_sub -t '$$SYS/#' -C 1 | grep -v Error || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - home-system
 
 networks:
-  backend_services:
-    driver: bridge
+  home-system:
+    name: home-system
+    external: true

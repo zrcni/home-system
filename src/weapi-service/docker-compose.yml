@@ -12,8 +12,9 @@ services:
       timeout: 10s
       retries: 5
     networks:
-      - backend_services
+      - home-system
 
 networks:
-  backend_services:
-    driver: bridge
+  home-system:
+    name: home-system
+    external: true

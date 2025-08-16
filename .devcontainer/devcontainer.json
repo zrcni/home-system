@@ -35,5 +35,5 @@
       "extensions": ["esbenp.prettier-vscode", "golang.go"]
     }
   },
-  "runArgs": ["--network=weapi-service_backend_services"]
+  "runArgs": ["--network=host"]
 }
