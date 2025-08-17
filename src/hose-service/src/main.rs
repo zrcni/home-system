@@ -23,18 +23,20 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to create MongoDB client");
 
+    let conditions_repo = create_mongodb_conditions_repo(
+        mongo_client,
+        conditions_db_name,
+        conditions_db_collection_name,
+    )
+    .expect("Failed to create MongoDBConditionsRepo");
+
     tokio::spawn(run_mqtt(
         mqtt_client.clone(),
         mqtt_eventloop,
-        create_mongodb_conditions_repo(
-            mongo_client,
-            conditions_db_name,
-            conditions_db_collection_name,
-        )
-        .expect("Failed to create ConditionsRepo"),
+        conditions_repo.clone(),
     ));
 
-    let server = run(settings, mqtt_client).unwrap();
+    let server = run(settings, mqtt_client, conditions_repo).unwrap();
     let server_handle = server.handle();
 
     rt::spawn(server);

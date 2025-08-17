@@ -5,12 +5,14 @@ use actix_web::{App, HttpServer, middleware, web};
 use log;
 use rumqttc;
 
+use crate::conditions::MongoDBConditionsRepo;
 use crate::configuration::Settings;
 use crate::routes::*;
 
 pub fn run(
     mut settings: Settings,
     mqtt_client: rumqttc::AsyncClient,
+    conditions_repo: MongoDBConditionsRepo,
 ) -> Result<Server, std::io::Error> {
     let listener = settings.get_tcp_listener()?;
     let port = listener.local_addr().unwrap().port();
@@ -19,6 +21,7 @@ pub fn run(
     let state: web::Data<AppState> = web::Data::new(AppState {
         settings: settings,
         mqtt_client: mqtt_client,
+        conditions_repo: conditions_repo,
     });
 
     let server = HttpServer::new(move || {
@@ -33,6 +36,10 @@ pub fn run(
             .route("/health", web::get().to(health))
             .route("/health", web::head().to(health))
             .route("/publish", web::post().to(publish_mqtt_mock))
+            .route(
+                "/conditions/{device_id}/latest",
+                web::get().to(get_latest_condition),
+            )
     })
     .listen(listener)?
     .run();
@@ -43,4 +50,5 @@ pub fn run(
 pub struct AppState {
     pub settings: Settings,
     pub mqtt_client: rumqttc::AsyncClient,
+    pub conditions_repo: MongoDBConditionsRepo,
 }

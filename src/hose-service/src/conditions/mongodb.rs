@@ -37,6 +37,14 @@ impl MongoDBConditionsRepo {
     }
 }
 
+impl Clone for MongoDBConditionsRepo {
+    fn clone(&self) -> Self {
+        MongoDBConditionsRepo {
+            collection: self.collection.clone(),
+        }
+    }
+}
+
 pub fn create_mongodb_conditions_repo(
     client: mongodb::Client,
     db_name: String,
