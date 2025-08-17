@@ -21,7 +21,6 @@ pub fn create_mqtt_client(host: String, port: u16) -> (AsyncClient, EventLoop) {
 
 pub async fn process_mqtt_events(mut eventloop: EventLoop, mqtt_handler: MqttHandler) {
     while let Ok(notification) = eventloop.poll().await {
-        log::info!("RECEIVED MQTT EVENT: {:?}", notification);
         match notification {
             Event::Incoming(Incoming::PubAck(puback)) => {
                 log::debug!("Received PubAck: {:?}", puback);
