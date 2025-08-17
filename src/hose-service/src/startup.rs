@@ -2,17 +2,21 @@ use actix_cors::Cors;
 use actix_web::dev::Server;
 use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer, middleware, web};
-use rumqttc::Client;
+use log;
+use rumqttc;
 
 use crate::configuration::Settings;
 use crate::routes::*;
 
-pub fn run(mut settings: Settings, mqtt_client: Client) -> Result<Server, std::io::Error> {
+pub fn run(
+    mut settings: Settings,
+    mqtt_client: rumqttc::AsyncClient,
+) -> Result<Server, std::io::Error> {
     let listener = settings.get_tcp_listener()?;
     let port = listener.local_addr().unwrap().port();
-    println!("Listening on http://0.0.0.0:{}", port);
+    log::info!("Listening on http://0.0.0.0:{}", port);
 
-    let state = web::Data::new(AppState {
+    let state: web::Data<AppState> = web::Data::new(AppState {
         settings: settings,
         mqtt_client: mqtt_client,
     });
@@ -38,5 +42,5 @@ pub fn run(mut settings: Settings, mqtt_client: Client) -> Result<Server, std::i
 
 pub struct AppState {
     pub settings: Settings,
-    pub mqtt_client: Client,
+    pub mqtt_client: rumqttc::AsyncClient,
 }

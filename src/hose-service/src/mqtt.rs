@@ -1,8 +1,11 @@
-use rumqttc::{Client, Connection, Event, Incoming, MqttOptions, SubscribeFilter};
+use crate::{
+    conditions::create_mongodb_conditions_repo,
+    mongodb::create_mongodb_client,
+    mqtt_handlers::{MqttHandler, create_new_mqtt_handler},
+};
+use log;
+use rumqttc::{AsyncClient, Event, EventLoop, Incoming, MqttOptions, SubscribeFilter};
 use std::time::Duration;
-
-use crate::configuration::Settings;
-use crate::mqtt_handlers::handle_incoming_mqtt_event;
 
 pub struct MqttTopics;
 
@@ -10,37 +13,29 @@ impl MqttTopics {
     pub const LIVING_ROOM_CONDITIONS_UPDATED: &'static str = "home/livingroom/temperature";
 }
 
-pub fn create_mqtt_client(settings: &Settings) -> (Client, Connection) {
-    let mut mqttoptions: MqttOptions = MqttOptions::new(
-        "hose-service",
-        settings.mqtt_host.clone(),
-        settings.mqtt_port,
-    );
+pub fn create_mqtt_client(host: String, port: u16) -> (AsyncClient, EventLoop) {
+    let mut mqttoptions: MqttOptions = MqttOptions::new("hose-service", host.to_string(), port);
     mqttoptions.set_keep_alive(Duration::from_secs(5));
-    let (client, connection) = Client::new(mqttoptions, 10);
-    (client, connection)
+    let (client, eventloop) = AsyncClient::new(mqttoptions, 10);
+    (client, eventloop)
 }
 
-pub fn process_mqtt_events(mut connection: Connection) {
-    for (i, notification) in connection.iter().enumerate() {
+pub async fn process_mqtt_events(mut eventloop: EventLoop, mqtt_handler: MqttHandler) {
+    while let Ok(notification) = eventloop.poll().await {
+        log::info!("RECEIVED MQTT EVENT: {:?}", notification);
         match notification {
-            Ok(notif) => match notif {
-                Event::Incoming(Incoming::PubAck(puback)) => {
-                    println!("{i}. Received PubAck: {:?}", puback);
-                }
-                Event::Incoming(Incoming::Publish(publish)) => {
-                    handle_incoming_mqtt_event(publish);
-                }
-                _ => {}
-            },
-            Err(error) => {
-                println!("{i}. Notification = {error:?}");
+            Event::Incoming(Incoming::PubAck(puback)) => {
+                log::debug!("Received PubAck: {:?}", puback);
             }
+            Event::Incoming(Incoming::Publish(publish)) => {
+                mqtt_handler.handle_event(publish).await;
+            }
+            _ => {}
         }
     }
 }
 
-pub fn setup_mqtt_subscriptions(client: &Client) {
+pub async fn setup_mqtt_subscriptions(client: AsyncClient) {
     let topics = vec![(
         MqttTopics::LIVING_ROOM_CONDITIONS_UPDATED.to_string(),
         rumqttc::QoS::AtLeastOnce,
@@ -51,7 +46,7 @@ pub fn setup_mqtt_subscriptions(client: &Client) {
         .map(|(path, qos)| SubscribeFilter { path, qos })
         .collect();
 
-    client.subscribe_many(topics).unwrap();
+    client.subscribe_many(topics).await.unwrap();
 }
 
 // fn handle_mqtt_event(incoming_event: Incoming) {
@@ -64,3 +59,28 @@ pub fn setup_mqtt_subscriptions(client: &Client) {
 //     timestamp: 1665779082868,
 //     client_id: 'mock_client',
 // }
+
+pub async fn run_mqtt(
+    mqtt_host: String,
+    mqtt_port: u16,
+    conditions_db_name: String,
+    conditions_db_collection_name: String,
+    conditions_mongodb_uri: String,
+) {
+    let mongo_client = create_mongodb_client(conditions_mongodb_uri)
+        .await
+        .expect("Failed to create MongoDB client");
+
+    let conditions_repo = create_mongodb_conditions_repo(
+        mongo_client,
+        conditions_db_name,
+        conditions_db_collection_name,
+    )
+    .expect("Failed to create ConditionsRepo");
+
+    let mqtt_handler = create_new_mqtt_handler(conditions_repo);
+    let (mqtt_client, mqtt_connection) = create_mqtt_client(mqtt_host, mqtt_port);
+    setup_mqtt_subscriptions(mqtt_client).await;
+    log::info!("MQTT event processing starting");
+    process_mqtt_events(mqtt_connection, mqtt_handler).await;
+}
