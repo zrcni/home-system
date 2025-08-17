@@ -38,7 +38,7 @@ pub fn run(
             .route("/publish", web::post().to(publish_mqtt_mock))
             .route(
                 "/conditions/{device_id}/latest",
-                web::get().to(get_latest_condition),
+                web::get().to(get_latest_conditions),
             )
     })
     .listen(listener)?

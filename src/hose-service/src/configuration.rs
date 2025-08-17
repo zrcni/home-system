@@ -36,6 +36,11 @@ impl Settings {
         }
     }
 
+    pub fn set_conditions_db_name(mut self, db_name: String) -> Self {
+        self.conditions_db_name = db_name;
+        return self;
+    }
+
     pub fn set_port(mut self, port: u16) -> Self {
         self.port = port;
         return self;

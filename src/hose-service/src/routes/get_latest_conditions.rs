@@ -2,7 +2,7 @@ use actix_web::{Error, HttpResponse, web};
 
 use crate::startup::AppState;
 
-pub async fn get_latest_condition(
+pub async fn get_latest_conditions(
     path: web::Path<String>,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {

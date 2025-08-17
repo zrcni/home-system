@@ -3,12 +3,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ConditionData {
     // saved as string, but actually float "XX.X"
-    temperature: String,
+    pub temperature: String,
     // saved as string, but actually float "XX.X"
-    humidity: String,
-    device_id: String,
-    timestamp: i64,
-    client_id: String,
+    pub humidity: String,
+    pub device_id: String,
+    pub timestamp: i64,
+    pub client_id: String,
 }
 
 #[derive(Deserialize)]
