@@ -6,7 +6,7 @@ pub async fn handle_living_room_conditions_update(
     conditions_repo: &MongoDBConditionsRepo,
 ) {
     let data = serde_json::from_str::<LivingRoomConditionUpdated>(payload).unwrap();
-    log::debug!("Living room conditions updated: {}", payload);
+    log::info!("Living room conditions updated: {}", payload);
 
     let condition_data: ConditionData = ConditionData::from(data);
 

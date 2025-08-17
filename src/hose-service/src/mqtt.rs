@@ -1,6 +1,5 @@
 use crate::{
-    conditions::create_mongodb_conditions_repo,
-    mongodb::create_mongodb_client,
+    conditions::MongoDBConditionsRepo,
     mqtt_handlers::{MqttHandler, create_new_mqtt_handler},
 };
 use log;
@@ -61,25 +60,11 @@ pub async fn setup_mqtt_subscriptions(client: AsyncClient) {
 // }
 
 pub async fn run_mqtt(
-    mqtt_host: String,
-    mqtt_port: u16,
-    conditions_db_name: String,
-    conditions_db_collection_name: String,
-    conditions_mongodb_uri: String,
+    mqtt_client: AsyncClient,
+    mqtt_connection: EventLoop,
+    conditions_repo: MongoDBConditionsRepo,
 ) {
-    let mongo_client = create_mongodb_client(conditions_mongodb_uri)
-        .await
-        .expect("Failed to create MongoDB client");
-
-    let conditions_repo = create_mongodb_conditions_repo(
-        mongo_client,
-        conditions_db_name,
-        conditions_db_collection_name,
-    )
-    .expect("Failed to create ConditionsRepo");
-
     let mqtt_handler = create_new_mqtt_handler(conditions_repo);
-    let (mqtt_client, mqtt_connection) = create_mqtt_client(mqtt_host, mqtt_port);
     setup_mqtt_subscriptions(mqtt_client).await;
     log::info!("MQTT event processing starting");
     process_mqtt_events(mqtt_connection, mqtt_handler).await;
