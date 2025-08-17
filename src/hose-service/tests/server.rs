@@ -1,6 +1,11 @@
 mod common;
 use actix_web::test;
-use common::*;
+use common::{
+    get_health_check,
+    get_health_check_head,
+    spawn_app,
+    get_latest_conditions,
+};
 use hose_service::conditions::ConditionData;
 
 // test health check

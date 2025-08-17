@@ -10,10 +10,14 @@ fn init() {
     env_logger::init_from_env(Env::default().default_filter_or("warn"));
 }
 
-pub async fn spawn_app() -> (String, rumqttc::AsyncClient, MongoDBConditionsRepo) {
-    let mut settings = Settings::new()
+pub fn get_settings() -> Settings {
+    Settings::new()
         .set_port(0)
-        .set_conditions_db_name("test_conditions_db".to_string());
+        .set_conditions_db_name("test_conditions_db".to_string())
+}
+
+pub async fn spawn_app() -> (String, rumqttc::AsyncClient, MongoDBConditionsRepo) {
+    let mut settings = get_settings();
 
     let listener = &settings.get_tcp_listener().expect("Failed to bind address");
     let port = listener.local_addr().unwrap().port();

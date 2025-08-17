@@ -1132,6 +1132,7 @@ dependencies = [
  "actix-cors",
  "actix-web",
  "anyhow",
+ "bytes",
  "ctor",
  "env_logger",
  "log",

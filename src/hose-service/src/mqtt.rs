@@ -26,7 +26,9 @@ pub async fn process_mqtt_events(mut eventloop: EventLoop, mqtt_handler: MqttHan
                 log::debug!("Received PubAck: {:?}", puback);
             }
             Event::Incoming(Incoming::Publish(publish)) => {
-                mqtt_handler.handle_event(publish).await;
+                mqtt_handler
+                    .handle_event(publish.topic, publish.payload)
+                    .await;
             }
             _ => {}
         }
